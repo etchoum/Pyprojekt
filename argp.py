@@ -113,7 +113,7 @@ def get_waiting_averages(partition, param, dic):
 #  averages should be a list of average waitingtimes in seconds,
 #  with a single partition as first entry;
 #  find the number of jobs recensed in brackets
-def get_datings_from_average(averages):
+def get_walltimes(averages):
     datings = [averages[0]]
     times = [0, 60, 3600, 86400, 604800]
     dates = ['s', 'm', 'h', 'd', 'w']
@@ -163,12 +163,12 @@ sacct = call_sacct(partition_list)
 if args.mem:
     output = [minGB_head]
     for i in partition_list:
-        mem = get_datings_from_average(get_waiting_averages(i, 'mem', sacct))
+        mem = get_walltimes(get_waiting_averages(i, 'mem', sacct))
         output.append(mem)
     print(tabulate(output, headers='firstrow'))
 else:
     output = [minCPU_head]
     for i in partition_list:
-        cpu = get_datings_from_average(get_waiting_averages(i, 'cpu', sacct))
+        cpu = get_walltimes(get_waiting_averages(i, 'cpu', sacct))
         output.append(cpu)
     print(tabulate(output, headers='firstrow'))
