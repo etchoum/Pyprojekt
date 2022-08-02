@@ -34,8 +34,8 @@ for arg in list[1]:
 #out = subprocess.run(["sacct -a -X -o jobid,Eligible,reserved,start,state,alloccpu,Elapsed,cpu,partition,Timelimit -s R 
 #outp=  out.stdout.decode('utf -8').splitlines()
 
-print('There are {} pending and {} running jobs on the queue'.format( count, count1) )
-print('{} Jobs are completing right now'.format(cp))
+print('There are {} pending and {} running jobs on the queue\n'.format(count, count1) )
+print('{} Jobs are completing right now\n'.format(cp))
 
 def average(x, a=count, b=count1):
 	c=len(x)-1
@@ -76,4 +76,4 @@ lst=[]
 for i in outp[1:]:
 	j=int(i)
 	lst.append(j)
-print('The mean pending time is about {} hours per job'.format(round((sum(lst)/len(lst))/3600 ,2)))
+print('\nThe mean pending time is about {} hours per job\n'.format(round((sum(lst)/len(lst))/3600 ,2)))
