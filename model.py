@@ -1,25 +1,6 @@
 #!/usr/bin/env python
-import time
-d2= time.strftime ("%B %d, %Y %H:%M")
-print('|{}: \n'.format(d2))
-#####################################
-import argparse
-import subprocess
-from tabulate import tabulate
-
-
-#  first call sinfo to get a list of available partitions
-#  and save it in partition_list
-#sinfo = subprocess.run([
-#        "sinfo", "-o", "%R"],
-#        stdout=subprocess.PIPE, shell=False)
-#decode = sinfo.stdout.decode('utf-8').splitlines()
-#partition_list = [i for i in decode[1:-1]]
+#  Define partition list
 partition_list =['fat+', 'medium', 'fat', 'int', 'gpu']
-
-
-#####################################
-#  define functions
 #  to convert ReqMem in MB
 def get_MB_from_mem(mem):
     memory = mem[:-1]
@@ -53,7 +34,7 @@ def call_sacct(partition_list):
 #            "reserved, partition, ReqMem, ReqCPUS, Timelimit",
 #            "-sCD,R", "-Snow-1days", "-Enow"],
 #            stdout=subprocess.PIPE, shell=False)
-    f = open('slurm_outputs/slurm_output1')           # Mac and Linux
+    f = open('slurm_outputs/slurm_output0')           # Mac and Linux
     decode = f.readlines()[1:]
     for a in decode:
         line = a.split("|")
@@ -71,16 +52,19 @@ def call_sacct(partition_list):
         dic[a_2].append((a_1, a_5*a_3, a_5*a_4))
     return dic
 
-
-##################################
-#  check how much of data is available to display
 sacct = call_sacct(partition_list)
 for i in sacct:
     print("For partition {}, there is {} available".format(i, len(sacct[i])))
 
 
-#  reduce number of raws and check ; hier n=7
-Limited_dic = {j: sacct[j][:7] for j in sacct}
+#  reduce number of raws to minimum available for all partitions and check 
+min_jobs = []
+for i in sacct:
+    j = len(sacct[i])
+    min_jobs.append(j)
+
+Param = min(min_jobs)
+Limited_dic = {j: sacct[j][:Param] for j in sacct}
 for i in Limited_dic:
     print(i, len(Limited_dic[i]))
 
@@ -101,3 +85,6 @@ for i in ring:
 acct = pd.DataFrame(ring, columns=['fat+', 'medium', 'fat', 'int',
                         'gpu'])
 print(acct)
+
+
+
