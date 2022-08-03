@@ -2,7 +2,6 @@
 ##############################################
 #  PART I : Configs and automation-functions #
 ##############################################
-#  Give time
 import time
 #  print Time/Day/Hour
 d2= time.strftime ("%B %d, %Y %H:%M")
@@ -47,7 +46,7 @@ def call_sacct(partition_list):
             "sacct", "-a", "-X", "-T", "-p",
             "-r", partitions, "-o",
             "reserved, partition, ReqMem, ReqCPUS, Timelimit",
-            "-sCD,R", "-Snow-1days", "-Enow"],
+            "-sCD,R", "-Snow-7days", "-Enow"],
             stdout=subprocess.PIPE, shell=False)
 #    f = open('slurm_outputs/slurm_output0')           # Mac and Linux
 #    decode = f.readlines()[1:]
@@ -178,12 +177,27 @@ for i in partition_list:
 act1 = pd.DataFrame(ring).T
 act1.columns = minGB_head[1:]
 print("Walltime partitioning with trained data \n {} ".format(act1))
+for i in minGB_head[1:]:
+    for j in partition_list:
+        if act1[i][j] == 'NA':
+            act1[i][j] = act1[i][j].replace('NA', '0')
+        else:
+            continue
 
-for j in range(len())
-    for i in minGB_head[1:]:
-        print(act1[i].split()[0])
-
-
+times = [1/60, 1, 60, 1440, 10080]
+dates = ['s', 'm', 'h', 'd', 'w']
+for i in minGB_head[1:]:
+    for j in partition_list:
+        if act1[i][j] == '0':
+            continue
+        else:
+            a = act1[i][j].split(' ')[0]
+            b = act1[i][j].split(' ')[1]
+            k = dates.index(b)
+            act1[i][j] = act1[i][j].replace(act1[i][j], str(float(a)*times[k]))
+print("Walltime partitioning in minutes with trained data \n{}\n".format(act1))
+#act0 = act1.to_dict()
+#print(act0)
 ##############################################
 #                   END                      #
 ##############################################
