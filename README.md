@@ -9,7 +9,12 @@ To calculate walltimes of computation node machines
   * take number of requested cores into account
     * cores * timelimit = core-time as a metric to bin the data by
 * Visualize this data on a web page, e.g. using flask
-
+* Perform prediction Analysis to supply waiting times division into classes for ex. using:
+    * Tobit-Model
+    * Linear Discriminant Analysis (LDA)
+    * Quadratic Linear Analysis (QDA)
+    * And/or oder Models
+ 
 # Examples:
 
 Example for `argp.py -p medium,fat`:
