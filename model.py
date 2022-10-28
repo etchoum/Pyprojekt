@@ -8,6 +8,7 @@ d2= time.strftime ("%B %d, %Y %H:%M")
 print('|{}: \n'.format(d2))
 from tabulate import tabulate
 import pandas as pd
+#import matplotlib.pyplot as plt
 import subprocess
 
 #  Define partition list
@@ -42,15 +43,15 @@ def get_seconds_from_time(time):
 def call_sacct(partition_list):
     dic = {i: [] for i in partition_list}
     partitions = ','.join(partition_list)
-    sacct = subprocess.run([
-            "sacct", "-a", "-X", "-T", "-p",
-            "-r", partitions, "-o",
-            "reserved, partition, ReqMem, ReqCPUS, Timelimit",
-            "-sCD,R", "-Snow-7days", "-Enow"],
-            stdout=subprocess.PIPE, shell=False)
-#    f = open('slurm_outputs/slurm_output0')           # Mac and Linux
-#    decode = f.readlines()[1:]
-    decode = sacct.stdout.decode('utf-8').splitlines()[2:]
+#    sacct = subprocess.run([
+#            "sacct", "-a", "-X", "-T", "-p",
+#            "-r", partitions, "-o",
+#            "reserved, partition, ReqMem, ReqCPUS, Timelimit",
+#            "-sCD,R", "-Snow-7days", "-Enow"],
+#            stdout=subprocess.PIPE, shell=False)
+    f = open('slurm_outputs/slurm_output0')           # Mac and Linux
+    decode = f.readlines()[1:]
+#    decode = sacct.stdout.decode('utf-8').splitlines()[2:]
     for a in decode:
         line = a.split("|")
 #  in case some informations should be missing
@@ -168,7 +169,6 @@ print("\nWalltime partitionning with complete data \n {}\n".format(tabulate(outp
 ##############################################
 #  PART III : DISPLAY TRAINED WALLTIMES      #
 ##############################################
-import matplotlib.pyplot as plt
 #  Display transformed Designmatrix
 #  with adequated columns and rows
 for i in partition_list:

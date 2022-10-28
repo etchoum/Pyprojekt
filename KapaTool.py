@@ -11,50 +11,15 @@ print('|{}: \n'.format(d2))
 #################################################################
 #  Part I : General Configurations                              #
 #################################################################
-#  First call sinfo to get a list of available partitions
-#  in 'slurm' and save it in partition_list.
-#  Those will help for selecting
-#  partitions one would want to calculate waitingtimes for
-#sinfo = subprocess.run([
-#        "sinfo", "-o", "%R"],
-#        stdout=subprocess.PIPE, shell=False)
-#decode = sinfo.stdout.decode('utf-8').splitlines()
-#partition_list = [i for i in decode[1:-1]]
-partition_list = [ "medium", "gpu", "fat", "fat+", "int"]
-
-#  Define set-lists that one would want to separate waitingtimes into;
-#  to adapt time repartitions perform changes in head_lists
-interval_mem = [0]
-interval_cpu = [0]
-#  it is important to leave a space inbetween values and units
-#  in head lists for automation reason; start at 4GBh & 3CPUh
+partition_list = [ k for k in [1006245:1311872]]
 minGB_head = [
-    "Partition", "< 4 GBh", " 4 GBh -  256 GBh", "256 GBh - 1024 GBh",
-    "1024 GBh - 51200 GBh", "51200 GBh - 102400 GBh", "> 102400 GBh"]
-minCPU_head = [
-    "Partition", "< 3 CPUh", "3 CPUh - 15 CPUh",
-    "15 CPUh - 30 CPUh", "30 CPUh - 150 CPUh",
-    "150 CPUh - 300 CPUh", "> 300 CPUh"]
-for a, b in zip(minGB_head[1:-1], minCPU_head[1:-1]):
-    interval_cpu.append(3600*int(b.split(' ')[-2]))
-    interval_mem.append(3600*1024*int(a.split(' ')[-2]))
+    "PSP-Element", "KapBearb.-Sollbed.", "KapBearb.-Restbed.", "KapAbrüst-Sollbed.", "KapAbrüst-Restbed."] 
 
 
 
 #################################################################
 #  Part II : Automation-Functions for PARSING                   #
 #################################################################
-#  to convert memory 'mem' (M,G or T) in MB
-def get_MB_from_mem(mem):
-    memory = mem[:-1]
-    if 'M' in mem:
-        memory = float(memory)
-    elif 'G' in mem:
-        memory = 1024*float(memory)
-    elif 'T' in mem:
-        memory = 1024**2*float(memory)
-    return memory
-
 
 #  to convert time format [DD-[HH:]]MM:SS in secondes
 def get_seconds_from_time(time):
@@ -96,55 +61,6 @@ def call_sacct(partition_list):
         dic[a_2].append((a_1, a_5*a_3, a_5*a_4))
     return dic
 
-
-#  to display waitingtimes for any single partition, where
-def get_waiting_averages(partition, param, dic):
-    averages = [partition]
-    if param == 'cpu':
-        interval = interval_cpu
-    elif param == 'mem':
-        interval = interval_mem
-#  'dic' is a dictionary including waitingtimes for all partition
-#  lst records the waiting time for every single job
-#  lt records the number of jobs
-    lst = [0]*(len(interval))
-    lt = [0]*(len(interval))
-    for i, j, k in dic[partition]:
-        if param == 'cpu':
-            m = k
-        elif param == 'mem':
-            m = j
-        for s in range(len(interval)-1):
-            if interval[s] < m <= interval[s+1]:
-                lst[s] = lst[s] + i
-                lt[s] = lt[s] + 1
-        if m > interval[-1]:
-            lst[-1] = lst[-1] + i
-            lt[-1] = lt[-1] + 1
-#  b or 1 ensures non-zero division
-    for a, b in zip(lst, lt):
-        averages.append([round(a/(b or 1), 2), b])
-    return averages
-
-
-#  to automate the value of the output-waitingtimes
-#  secondes, minutes, hours, days or weeks
-def get_walltimes(averages):
-    datings = [averages[0]]
-    times = [0, 60, 3600, 86400, 604800]
-    dates = ['s', 'm', 'h', 'd', 'w']
-    var = [1, 60, 3600, 3600/24, 3600/24/7]
-    for t in averages[1:]:
-        if t[0] == 0:
-            datings.append('NA')
-        for s in range(len(times)-1):
-            if times[s] < t[0] <= times[s+1]:
-                date = dates[s]
-                value = [round(t[0]/var[s], 1), t[1]]
-                datings.append(f'{value[0]} {date} ({value[1]})')
-        if t[0] > times[-1]:
-            datings.append(f'{round(t[0]/var[-1], 1)} {dates[-1]} ({t[1]})')
-    return datings
 
 
 #################################################################
