@@ -10,6 +10,7 @@ git clone https://github.com/etchoum/Pyprojekt.git
 cd Pyprojekt
 sudo apt install python3.9
 python3.9 -m pip install tabulate
+python3.9 -m pip install openpyxl
 python3.9 -m pip install pandas
 python3.9 model.py
 python3.9 pyscript.py
