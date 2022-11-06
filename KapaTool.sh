@@ -14,4 +14,7 @@ python3.9 -m pip install openpyxl
 python3.9 -m pip install pandas
 python3.9 model.py
 python3.9 pyscript.py
+python3.9 KapaTool.py --auftrag 1006245
+python3.9 KapaTool.py --psp_element G1006245
+python3.9 Kapa.py
 
