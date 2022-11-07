@@ -30,14 +30,34 @@ def import_xlsx(filename):
 
 
 def call_Kapadaten_withauftrag(Auftrag_list):
+    table_head = import_xlsx('EXPORT_2022_10_21_ Kapadaten.XLSX')[0]    # columns (Beschriftungen)
+    table = [table_head[0:8]]
     dic = {a: [] for a in Auftrag_list}
 #    f = open('EXPORT_2022_10_21_ Kapadaten.XLSX')           # Mac and Linux
 #    decode = f.readlines()[1:].decode('utf-8').splitlines()  # translating Excel Format
-    for anyline in import_xlsx('EXPORT_2022_10_21_ Kapadaten.XLSX')[1:]:                   # here it begins at 1 because 0 just contains inscriptions and labels
-        for Auftragnumber in Auftrag_list:
+    for Auftragnumber in Auftrag_list:
+        for anyline in import_xlsx('EXPORT_2022_10_21_ Kapadaten.XLSX')[1:]:                   # here it begins at 1 because 0 just contains inscriptions and labels
             if anyline[4] == Auftragnumber:
                 dic[Auftragnumber].append(anyline)                    # select the target variable
-    return dic
+                table_head.append(anyline[0:8])
+        for j in range(len(dic[Auftragnumber])):
+            adds = [dic[a] for a in dic][0][j][0:8]
+            for k in range(len(adds)):
+                if adds[k] is None:
+                    adds[k] = 'NA'
+            table.append(adds)
+    print(tabulate(table, headers='firstrow'))
+
+
+#    info_0 = [dic[a][0:5] for a in Auftrag_list][0][0]
+#    info_1 = [dic[a][0:5] for a in Auftrag_list][0][1]
+#    for k in range(len(info_1)):
+#        if info_1[k] is None:
+#            info_1[k] = 'NA'
+#    print(info_0[0:8])
+#    print(info_1[0:8])
+#    print(tabulate([table_head[0: -2][0:8], info_0[0:8], info_1[0:8]], headers='firstrow'))
+#    return dic
 
 
 def call_Kapadaten(PSP_list):
