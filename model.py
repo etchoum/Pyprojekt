@@ -1,22 +1,50 @@
 #!/usr/bin/env python
-##############################################
-#  PART I : Configs and automation-functions #
-##############################################
+import argparse
+import subprocess
+from tabulate import tabulate
 import time
 #  print Time/Day/Hour
 d2= time.strftime ("%B %d, %Y %H:%M")
 print('|{}: \n'.format(d2))
-from tabulate import tabulate
-import pandas as pd
-#import matplotlib.pyplot as plt
-import subprocess
-
-#  Define partition list
-partition_list =['fat+', 'medium', 'fat', 'int', 'gpu']
 
 
-#  Define automation-functions
-#  to convert ReqMem in MB
+#################################################################
+#  Part I : General Configurations                              #
+#################################################################
+#  First call sinfo to get a list of available partitions
+#  in 'slurm' and save it in partition_list.
+#  Those will help for selecting
+#  partitions one would want to calculate waitingtimes for
+#sinfo = subprocess.run([
+#        "sinfo", "-o", "%R"],
+#        stdout=subprocess.PIPE, shell=False)
+#decode = sinfo.stdout.decode('utf-8').splitlines()
+#partition_list = [i for i in decode[1:-1]]
+partition_list = [ "medium", "gpu", "fat", "fat+", "int"]
+
+#  Define set-lists that one would want to separate waitingtimes into;
+#  to adapt time repartitions perform changes in head_lists
+interval_mem = [0]
+interval_cpu = [0]
+#  it is important to leave a space inbetween values and units
+#  in head lists for automation reason; start at 4GBh & 3CPUh
+minGB_head = [
+    "Partition", "< 4 GBh", " 4 GBh -  256 GBh", "256 GBh - 1024 GBh",
+    "1024 GBh - 51200 GBh", "51200 GBh - 102400 GBh", "> 102400 GBh"]
+minCPU_head = [
+    "Partition", "< 3 CPUh", "3 CPUh - 15 CPUh",
+    "15 CPUh - 30 CPUh", "30 CPUh - 150 CPUh",
+    "150 CPUh - 300 CPUh", "> 300 CPUh"]
+for a, b in zip(minGB_head[1:-1], minCPU_head[1:-1]):
+    interval_cpu.append(3600*int(b.split(' ')[-2]))
+    interval_mem.append(3600*1024*int(a.split(' ')[-2]))
+
+
+
+#################################################################
+#  Part II : Automation-Functions for PARSING                   #
+#################################################################
+#  to convert memory 'mem' (M,G or T) in MB
 def get_MB_from_mem(mem):
     memory = mem[:-1]
     if 'M' in mem:
@@ -47,15 +75,15 @@ def call_sacct(partition_list):
 #            "sacct", "-a", "-X", "-T", "-p",
 #            "-r", partitions, "-o",
 #            "reserved, partition, ReqMem, ReqCPUS, Timelimit",
-#            "-sCD,R", "-Snow-7days", "-Enow"],
+#            "-sCD,R", "-Snow-1days", "-Enow"],
 #            stdout=subprocess.PIPE, shell=False)
+#    decode = sacct.stdout.decode('utf-8').splitlines()[2:]
     f = open('slurm_outputs/slurm_output0')           # Mac and Linux
     decode = f.readlines()[1:]
-#    decode = sacct.stdout.decode('utf-8').splitlines()[2:]
     for a in decode:
         line = a.split("|")
 #  in case some informations should be missing
-#  waitingtimes have to remind trustfull
+#  calculated waitingtimes have to remind trustfull
         if line[0] == '' or line[4] == 'UNLIMITED':
             continue
         a_1 = get_seconds_from_time(line[0])
@@ -108,7 +136,6 @@ def get_walltimes(averages):
     var = [1, 60, 3600, 3600/24, 3600/24/7]
     for t in averages[1:]:
         if t[0] == 0:
-#            datings.append(0)
             datings.append('NA')
         for s in range(len(times)-1):
             if times[s] < t[0] <= times[s+1]:
@@ -120,84 +147,56 @@ def get_walltimes(averages):
     return datings
 
 
-##############################################
-#  PART II : DATA STANDARDIZING & MODELLING  #
-##############################################
+#################################################################
+#  Part III : PARSING waitingtimes with the commandline         #
+#################################################################
+#  define parser
+parser = argparse.ArgumentParser(
+            prog='argp.py',
+            usage='%(prog)s [options]',
+            description='Walltimes based on selected partition(s)'
+            ' in CPUh and GBh')
+
+#  define parser arguments
+parser.add_argument(
+            '-p',
+            '--partition',
+            nargs=1,
+            help='display walltimes based on number of CPU')
+parser.add_argument('-m',
+                    '--mem',
+                    action='store_true',
+                    help='display walltimes based on required memory')
+args = parser.parse_args()
+
+#  define parser statements
+if args.partition:
+    m = args.partition[0].split(',')
+#  make sure sacct doesn't run if command is'nt true
+    for n in m:
+        if n not in partition_list:
+            print('error - please call_sacct_for existing partition(s)')
+            exit(1)
+    partition_list = m
+
+#  call 'sacct' only one time,
+#  to limit bugs occurence in the programm itself
+sacct = call_sacct(partition_list)
+#  and give parser conditions
+if args.mem:
+    output = [minGB_head]
+    for i in partition_list:
+        mem = get_walltimes(get_waiting_averages(i, 'mem', sacct))
+        output.append(mem)
+    print(tabulate(output, headers='firstrow'))
+else:
+    output = [minCPU_head]
+    for i in partition_list:
+        cpu = get_walltimes(get_waiting_averages(i, 'cpu', sacct))
+        output.append(cpu)
+    print(tabulate(output, headers='firstrow'))
 
 
-#  Give number of accounted jobs for each partition
-sacct = call_sacct(partition_list)        
-for i in sacct:
-    print("For partition {}, there was {} jobs on the queue".format(i, len(sacct[i])))
-
-#  reduce number of raws to minimum available for all partitions and check 
-nb_jobs_per_partition = []
-for i in sacct:
-    j = len(sacct[i])
-    nb_jobs_per_partition.append(j)
-Param = min(nb_jobs_per_partition)
-
-#  check
-Limited_dic = {j: sacct[j][:1000] for j in sacct}
-print("\n Trained data: \n Partition | Number of jobs")
-for i in Limited_dic:
-    print("       {}    {}".format(i, len(Limited_dic[i])))
-
-#  standardize Designmatrix, to model output-Data
-ping = {'fat+': [], 'medium': [], 'fat': [], 'int': [],
-                        'gpu': []}
-ring = {i: [] for i in partition_list}
-interval_mem = [0]
-interval_cpu = [0]
-minGB_head = [
-    "Partition", "< 4 GBh", " 4 GBh -  256 GBh", "256 GBh - 1024 GBh",
-    "1024 GBh - 51200 GBh", "51200 GBh - 102400 GBh", "> 102400 GBh"]
-minCPU_head = [
-    "Partition", "< 3 CPUh", "3 CPUh - 15 CPUh",
-    "15 CPUh - 30 CPUh", "30 CPUh - 150 CPUh",
-    "150 CPUh - 300 CPUh", "> 300 CPUh"]
-for a, b in zip(minGB_head[1:-1], minCPU_head[1:-1]):
-    interval_cpu.append(3600*int(b.split(' ')[-2]))
-    interval_mem.append(3600*1024*int(a.split(' ')[-2]))
-output = [minGB_head]
-for i in partition_list:
-    mem = get_walltimes(get_waiting_averages(i, 'mem', sacct))
-    output.append(mem)
-    ping[i] = mem[1:]
-print("\nWalltime partitionning with complete data \n {}\n".format(tabulate(output, headers='firstrow')))
-
-##############################################
-#  PART III : DISPLAY TRAINED WALLTIMES      #
-##############################################
-#  Display transformed Designmatrix
-#  with adequated columns and rows
-for i in partition_list:
-    mem = get_walltimes(get_waiting_averages(i, 'mem', Limited_dic))
-    ring[i] = mem[1:]
-act1 = pd.DataFrame(ring).T
-act1.columns = minGB_head[1:]
-print("Walltime partitioning with trained data \n {} ".format(act1))
-for i in minGB_head[1:]:
-    for j in partition_list:
-        if act1[i][j] == 'NA':
-            act1[i][j] = act1[i][j].replace('NA', '0')
-        else:
-            continue
-
-times = [1/60, 1, 60, 1440, 10080]
-dates = ['s', 'm', 'h', 'd', 'w']
-for i in minGB_head[1:]:
-    for j in partition_list:
-        if act1[i][j] == '0':
-            continue
-        else:
-            a = act1[i][j].split(' ')[0]
-            b = act1[i][j].split(' ')[1]
-            k = dates.index(b)
-            act1[i][j] = act1[i][j].replace(act1[i][j], str(float(a)*times[k]))
-print("Walltime partitioning in minutes with trained data \n{}\n".format(act1))
-#act0 = act1.to_dict()
-#print(act0)
-##############################################
-#                   END                      #
-##############################################
+#################################################################
+#                               END                             #
+#################################################################
