@@ -1,26 +1,61 @@
 #!/bin/env python
 import argparse
 import pandas as pd
-import openpyxl
-#import matplotlib.pyplot as plt
-
-# del frame2["volume"]
+import time
+d2= time.strftime ("%B %d, %Y %H:%M")
+print('|{}: \n'.format(d2))
 data = pd.read_excel(r'/home/mint/Documents/Pyprojekt/EXPORT_2022_10_21_ Kapadaten.XLSX')
-df = pd.DataFrame(data, columns=["PSP-Element", "Fertigungsauftragsmaterial", "Vorgangsbeschr.1",
-        "Arbeitsplatz", "Früh.Start", "Früh.Ende",  
-        "KapBearb.-Sollbed. (KEINH)", "KapBearb.-Restbed. (KEINH)" ,
-        "KapazitätBezeichnung"]).set_index("Fertigungsauftragsmaterial")
-df_1 = pd.DataFrame.head(data).squeeze(axis=0)
-print(df_1)
+data_frame = pd.DataFrame(data, columns=["Fertigungsauftragsmaterial", "PSP-Element", "Auftrag", "Vorgangsbeschr.1",
+        "Arbeitsplatz", "Früh.Start", "Früh.Ende", "KapBearb.-Sollbed. (KEINH)", "KapBearb.-Restbed. (KEINH)" , "KapazitätBezeichnung"])
+data = data_frame[["Fertigungsauftragsmaterial", "Auftrag",
+                "Früh.Start", "Früh.Ende",
+                "KapBearb.-Sollbed. (KEINH)", "KapBearb.-Restbed. (KEINH)"]]
+def call_Kapadaten_withauftrag(Auftrag_list, dataframe, param):
+    for k in Auftrag_list:
+        frame = dataframe.T[[k]].T
+        frame["Rest Bearb_zeit"] = frame["Früh.Ende"] - frame["Früh.Start"]
+        frame["Δ KapBearb. Restbedarf"] = frame["KapBearb.-Sollbed. (KEINH)"] - frame["KapBearb.-Restbed. (KEINH)"] 
+        frame["Auftrag"] = frame["Auftrag"].astype(int)
+        if param == False:
+            print(frame)
+        elif param == True:
+            SOLL = frame["KapBearb.-Sollbed. (KEINH)"].sum()
+            REST = frame["KapBearb.-Restbed. (KEINH)"].sum()
+            IST = SOLL - REST
+            sum_frame = frame
+            sum_frame["SOLL"] = SOLL
+            sum_frame["IST"] = IST
+            print(sum_frame)
+parser = argparse.ArgumentParser(
+        prog='Kapatool.py',
+        usage='%(prog)s [options]',
+        description='Walltimes based on Fertigungsauftragsmaterial')
+parser.add_argument(
+        '-a',
+        '--auftrag',
+        nargs=1,
+        help="-a, or --auftrag for Walltimes based on Fertigungsauftragsmaterial")
+parser.add_argument(
+        '-s',
+        '--summ',
+        action='store_true',
+        help="-s, --summ for printing some of Walltimes")
 
-df_2 = pd.DataFrame.head(df[["PSP-Element",
-        "Arbeitsplatz", "Früh.Start", "Früh.Ende",
-        "KapBearb.-Sollbed. (KEINH)", "KapBearb.-Restbed. (KEINH)"]])
-print(df_2)
+args = parser.parse_args()
+data = data.set_index("Fertigungsauftragsmaterial")
+Input = args.auftrag[0].split(',')
+rows = []
+for k in Input:
+    rows.append(k)
+Input = rows
+if args.summ:
+    call_Kapadaten_withauftrag(Input, data, param=True)
+    exit(1)
+if args.auftrag:
+    call_Kapadaten_withauftrag(Input, data, param=False)
+else:
+    print("Check again for correct Fertigungsauftragsmaterial")
+    exit(1)
 
-frame_0 = df.iloc[[0,7]]
-print(frame_0)
-print(df.iloc[57])
-print(df.loc[["F002567481"]])  ## search in the index list
-frame_1 =pd.DataFrame.head(df.loc["F004057494"])
-print(frame_1)
+
+
