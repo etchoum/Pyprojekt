@@ -2,6 +2,8 @@
 import argparse
 import pandas as pd
 import time
+import numpy as np
+from tabulate import tabulate
 d2= time.strftime ("%B %d, %Y %H:%M")
 print('|{}: \n'.format(d2))
 data = pd.read_excel(r'/home/mint/Documents/Pyprojekt/EXPORT_Kapatool_Auftragskopf_2022_11_14.XLSX')
@@ -22,32 +24,55 @@ def call_Kapadaten_withauftrag(Auftrag_list, dataframe, param):
             data.index = data.index.astype(int)
             print(f'{data}')
             print(f'{frame} \n \n')
-def plane():
+def plane(Input, param):
     details = pd.read_excel(r'/home/mint/Documents/Pyprojekt/EXPORT_Kapatool_Vorgänge_2022_11_14.XLSX')
-    details_frame = pd.DataFrame(data, columns=["Auftrag", "Kurztext Vorgang", "Systemstatus", "Vorgangsmenge (MEINH)", "Mengeneinheit Vrg. (=MEINH)", "Fr.term.St.dat.Durchf", "Fr.term.Enddat.Durchf", "Rückgemeld. Leist. 1 (ILE01)",                                                       "Vorgabewert 3 (VGE03)", "Rückgemeld. Leist. 3 (ILE03)", "Bearbeitungszeit (BEAZE)"])
+    details_frame = pd.DataFrame(details, columns=["Auftrag", "Kurztext Vorgang", "Systemstatus", "Vorgangsmenge (MEINH)", "Mengeneinheit Vrg. (=MEINH)", "Fr.term.St.dat.Durchf", "Fr.term.Enddat.Durchf", "Rückgemeld. Leist. 1 (ILE01)",                                                       "Vorgabewert 3 (VGE03)", "Rückgemeld. Leist. 3 (ILE03)", "Bearbeitungszeit (BEAZE)"])
     details = details_frame[["Auftrag", "Kurztext Vorgang", "Systemstatus", "Vorgangsmenge (MEINH)", "Fr.term.St.dat.Durchf", "Fr.term.Enddat.Durchf", "Vorgabewert 3 (VGE03)", "Rückgemeld. Leist. 3 (ILE03)", "Bearbeitungszeit (BEAZE)"]].set_index("Auftrag")
-    ABGESCHLOSSEN = []
-    IN_BEARBEITUNG = []
-    ERRÖFNET = []
-    summ_ABG = 0
-    summ_IN_BEAR = 0
-    summ_ERRÖF = 0
-    for k in details:
-        if 'TABG' or 'RÜCK' in k["Systemstatus"]:
-            ABGESCHLOSSEN.append(k)
-            summ_ABG += 1
-        elif 'TRÜCK' or 'FREI' in k["Systemstatus"]:
-            IN_BEARBEITUNG.append(k)
-            summ_IN_BEAR += 1
-        elif 'EROF' in k["Systemstatus"]:
-            ERRÖFNET.append(k)
-            summ_IN_BEAR += 1
-#    print(ABGESCHLOSSEN.head())
-    print(f'summ_ABG = {summ_ABG}')
-#    print(IN_BEARBEITUNG.head())
-    print(f'summ_IN_BEAR = {summ_IN_BEAR}')
-#    print(ERRÖFNET.head())
-    print(f'summ_ERRÖF = {summ_ERRÖF}')
+    print("Example of list: for Status parameter given with --partition \n  \n  \n ")
+#    new_df_FREI = details.loc[details["Systemstatus"] == "FREI"]
+#    print(new_df_FREI)
+    dic_of_status = {STATUS:[] for STATUS in details["Systemstatus"]}
+    for k in dic_of_status:
+        status  = details.loc[details["Systemstatus"] == k]
+        dic_of_status[k].append(status)
+    for status in Input:
+        if param == True:
+            print(dic_of_status[status][0])
+###########################################################################Up to here it is about choosing the axis we want to sum up over
+            print(dic_of_status[status][0].sum(axis=0, numeric_only=bool))
+        if param == False:
+            exit(1)
+
+
+
+
+        
+
+
+
+#    list_with_auftrag = [details.loc[details["Systemstatus"] == k]]
+#    print(dic_of_status)
+#    info_line = pd.DataFrame(dic_of_status)
+#    print(info_line)
+#    for status in dic_of_status:
+#        for k in details.index:
+#            print(k)
+#            if details.T[[k]][2] == status:
+#                info_line[[status]] = details.loc[k][0:]
+#    print(info_line)
+
+
+
+
+
+
+
+
+
+
+
+
+
 parser = argparse.ArgumentParser(
         prog='Kapatool.py',
         usage='%(prog)s [options]',
@@ -62,6 +87,12 @@ parser.add_argument(
         '--details',
         action='store_true',
         help="-d, --details for printing all additional IST/SOLL informations")
+parser.add_argument(
+        '-p',
+        '--partition',# function to plane with the state status
+        nargs=1,
+        help="-d, --details for printing all additional IST/SOLL informations")
+
 args = parser.parse_args()
 data = data.set_index("Auftrag")
 rows = []
@@ -75,8 +106,8 @@ if args.auftrag:
 if args.details:
     call_Kapadaten_withauftrag(rows, data, param=True)
     exit(1)
-if args.auftrag:
+elif args.auftrag:
     call_Kapadaten_withauftrag(rows, data, param=False)
-else: plane()
-
-
+if args.partition:
+    Input = args.partition[0].split(',')
+    plane(Input, param=True)
