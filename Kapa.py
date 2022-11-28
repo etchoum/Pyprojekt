@@ -3,8 +3,11 @@
 import argparse
 import pandas as pd
 data = pd.read_excel(r'/home/mint/Documents/Pyprojekt/EXPORT_Kapatool_Vorgänge_2022_11_14.XLSX')
-data = pd.DataFrame(data, columns=["Auftrag", "Kurztext Vorgang", "Systemstatus", "Vorgangsmenge (MEINH)", "Mengeneinheit Vrg. (=MEINH)", "Fr.term.St.dat.Durchf", "Fr.term.Enddat.Durchf", "Rückgemeld. Leist. 1 (ILE01)", "Vorgabewert 3 (VGE03)", "Rückgemeld. Leist. 3 (ILE03)","Bearbeitungszeit (BEAZE)"])
-data = data[["Auftrag", "Kurztext Vorgang", "Systemstatus", "Vorgangsmenge (MEINH)", "Fr.term.St.dat.Durchf", "Fr.term.Enddat.Durchf", "Rückgemeld. Leist. 1 (ILE01)", "Bearbeitungszeit (BEAZE)"]]
+data = pd.DataFrame(data, columns=["Auftrag", "Kurztext Vorgang", "Systemstatus", "Vorgangsmenge (MEINH)", "Mengeneinheit Vrg. (=MEINH)", "Fr.term.St.dat.Durchf",
+                                  "Fr.term.Enddat.Durchf", "Rückgemeld. Leist. 1 (ILE01)", "Vorgabewert 3 (VGE03)", "Rückgemeld. Leist. 3 (ILE03)","Bearbeitungszeit (BEAZE)"
+                                  ])
+data = data[["Auftrag", "Kurztext Vorgang", "Systemstatus", "Vorgangsmenge (MEINH)", "Fr.term.St.dat.Durchf", "Fr.term.Enddat.Durchf",
+            "Rückgemeld. Leist. 1 (ILE01)", "Vorgabewert 3 (VGE03)", "Bearbeitungszeit (BEAZE)"]]
 
 data1 = pd.read_excel(r'/home/mint/Documents/Pyprojekt/EXPORT_Kapatool_Auftragskopf_2022_11_14.XLSX')
 data1 = pd.DataFrame(data1, columns=["Auftrag", "Kunden Code PSP", "PSP-Element", "Systemstatus"])
@@ -20,7 +23,7 @@ def Kapa_with_auftrag(Input, data, p):
             data.drop(["Fr.term.Enddat.Durchf", "Fr.term.St.dat.Durchf"], axis = 1, inplace=True)
             auftrag = data.loc[data.index == elment]
             dic_of_auftrag[elment].append(auftrag)
-            print(f'\n {dic_of_auftrag[elment][0]} \n')
+            print(f'Infos with order number(s): \n \n {dic_of_auftrag[elment][0]} \n \n \n The sum for numeric column keys: ')
             print(f'\n {dic_of_auftrag[elment][0][["Vorgangsmenge (MEINH)", "Rückgemeld. Leist. 1 (ILE01)", "Bearbeitungszeit (BEAZE)", "SOLL_Bearb_zeit"]].sum(axis=0)} \n \n')
 
 
@@ -32,7 +35,7 @@ def Kapa_with_status(Input, data, p):
             status  = data.loc[data.index == elment]
             dic_of_status[elment].append(status)
         for status in Input:
-            print(f'\n {dic_of_status[status][0]} \n')
+            print(f'Infos with order(s) and status: \n \n {dic_of_status[status][0]} \n \n \n The sum for numeric column keys: ')
             print(f'\n {dic_of_status[status][0].sum(axis=0, numeric_only=bool)} \n')
     if p == True:
         list_of_states = [str(STATUS) for STATUS in dic_of_status]
@@ -51,6 +54,8 @@ def Kapa_with_status(Input, data, p):
         dic["ABGESCHLOSSEN"] = data.T[LIST1].T
         dic["ZU_PLANEN"] = data.T[LIST2].T
         dic["IN_BEARBEITUNG"] = data.T[LIST3].T
+        for status in dic:
+            dic[status]["SOLL_Bearb_zeit"] = dic[status]["Fr.term.Enddat.Durchf"] - dic[status]["Fr.term.St.dat.Durchf"]
         print(f'\n {dic[Input]} \n ')
         print(f'\n {dic[str(Input)][["Vorgangsmenge (MEINH)", "Rückgemeld. Leist. 1 (ILE01)", "Bearbeitungszeit (BEAZE)", "SOLL_Bearb_zeit"]].sum(axis=0)} \n ')
 
@@ -79,12 +84,12 @@ def Kapa_with_psp(Input, data1, p):
         print(f' \n Available order numbers for project {Input} are: {", ".join(AUFTRÄGE)} \n')
         frame = data.set_index('Auftrag').T[list(AUFTRÄGE)].T
         frame["SOLL_Bearb_zeit"] = frame["Fr.term.Enddat.Durchf"] - frame["Fr.term.St.dat.Durchf"]
-        print(f'\n {frame} \n')
+        print(f'Infos with status and psp-element(s): \n \n {frame} \n \n \n The sum for numeric column keys:')
         print(f'\n {frame[["Vorgangsmenge (MEINH)", "Rückgemeld. Leist. 1 (ILE01)", "Bearbeitungszeit (BEAZE)", "SOLL_Bearb_zeit"]].sum(axis=0) } \n')
 
 
-#def Kapaplanung(Mitarbeiter_list, Kapazitätsfrist):
-    
+def Kap(Mitarbeiter_list):
+    print(Mitarbeiter_list)
 
 #################################################PARSER   ##########################################
 parser = argparse.ArgumentParser(prog='Kapa.py', usage='%(prog)s [options]', description='Walltimes based on Auftrag number & IST/SOLL Analysis')
@@ -123,4 +128,8 @@ if args.psp:
     if args.details:
         for Element in Input:
             Kapa_with_psp(Element, data1, p = None)
+elif not args.auftrag and not args.status and not args.psp:
+    Mitarbeiter_list = pd.read_csv(r'/home/mint/Documents/Pyprojekt/Mitarbeiter_list.XLSX')
+    Kapa_with_status("ZU_PLANEN", data.set_index("Systemstatus"), p = True)
+    Kap(Mitarbeiter_list)
 
